@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Ticketing System</title>
+    
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0f0f0f">
+
+    <meta name="description" content="Secure real-time event logistics and entry management.">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://hawkay002.github.io/Entry-Pass/">
+    <meta property="og:title" content="Event Ticketing System Command Center">
+    <meta property="og:description" content="Real-time logistics, secure scanning, and remote device management.">
+    
+    <meta property="og:image" content="https://hawkay002.github.io/Entry-Pass/preview-banner.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://hawkay002.github.io/Entry-Pass/">
+    <meta name="twitter:title" content="Event Ticketing System Command Center">
+    <meta name="twitter:description" content="Real-time logistics, secure scanning, and remote device management.">
+    <meta name="twitter:image" content="https://hawkay002.github.io/Entry-Pass/preview-banner.png">
+    
+    <link rel="preload" href="success.mp3" as="audio">
+    <link rel="preload" href="error.mp3" as="audio">
+    <link rel="preload" href="music.mp3" as="audio">
+    <link rel="preload" href="/chime.mp3" as="audio">
+    <!-- notification.mp3 removed as requested -->
+    
+    <link rel="stylesheet" href="style.css">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+</head>
+<body>
+    <div id="star-container"></div>
+
+    <div id="loading-screen">
+        <div class="spinner"></div>
+        <div class="loading-text">Initializing Secure Connection</div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <!-- UPDATED: Header Action Icons with Dropdown Structure -->
+    <div class="header-actions">
+        <div class="notification-wrapper" style="position: relative;">
+            <button id="notificationBtn" class="icon-btn">
+                <i class="fa-solid fa-bell"></i>
+                <div id="notifBadge" class="notification-badge">0</div>
+            </button>
+            
+<div id="notificationDropdown" class="notification-dropdown">
+                <div class="notif-header">
+                    <span>Notifications</span>
+                    <div>
+                        <button id="markReadBtn" class="text-btn-small" style="display:none;">Mark read</button>
+                        <button id="clearNotifsBtn" class="text-btn-small danger">Clear All</button>
+                    </div>
+                </div>
+                <div id="notifList" class="notif-list">
+                    <div class="notif-empty">No new notifications</div>
+                </div>
+            </div>
+        </div>
+
+        <button id="chatBtn" class="icon-btn">
+            <i class="fa-solid fa-comment-dots"></i>
+        </button>
+    </div>
+
+    <div id="confirm-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Confirm Deletion</h3>
+            <p id="delete-msg-text">Are you sure you want to permanently remove <span id="delete-count" style="color: white; font-weight: bold;">0</span> entries from the database?</p>
+            
+            <div id="delete-progress-container" style="display: none; margin-top: 15px; margin-bottom: 15px;">
+                <div style="background: rgba(255,255,255,0.1); height: 6px; border-radius: 3px; overflow: hidden;">
+                    <div id="delete-progress-bar" style="width: 0%; height: 100%; background: #ef4444; transition: width 0.3s ease;"></div>
+                </div>
+                <div style="font-size: 0.8rem; color: #aaa; margin-top: 5px; text-align: right;">
+                    Deleting <span id="delete-current">0</span> / <span id="delete-total">0</span>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button id="cancelDelete" class="modal-btn secondary">Cancel</button>
+                <button id="confirmDelete" class="modal-btn danger">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirm-log-delete-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Confirm Log Deletion</h3>
+            <p id="log-delete-msg">Are you sure you want to permanently remove <span id="delete-log-count" style="color: white; font-weight: bold;">0</span> activity logs?</p>
+            
+            <div id="log-delete-progress-container" style="display: none; margin-top: 15px; margin-bottom: 15px;">
+                <div style="background: rgba(255,255,255,0.1); height: 6px; border-radius: 3px; overflow: hidden;">
+                    <div id="log-delete-progress-bar" style="width: 0%; height: 100%; background: #ef4444; transition: width 0.3s ease;"></div>
+                </div>
+                <div style="font-size: 0.8rem; color: #aaa; margin-top: 5px; text-align: right;">
+                    Deleting <span id="log-delete-current">0</span> / <span id="log-delete-total">0</span>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button id="cancelLogDelete" class="modal-btn secondary">Cancel</button>
+                <button id="confirmLogDelete" class="modal-btn danger">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="lock-reason-modal" class="modal-overlay" style="z-index: 6000; display: none;">
+        <div class="modal-box lock-popup-content">
+            <div class="lock-popup-header">
+                <div class="lock-icon-circle">
+                    <i id="lockPopupIcon" class="fa-solid fa-info"></i>
+                </div>
+                <h3 id="lockPopupTitle">Access Update</h3>
+            </div>
+
+            <div class="lock-popup-body">
+                <p id="lockPopupMessage">Some features have been restricted.</p>
+                
+                <div id="lockPopupDuration" class="lock-duration-box" style="display: none;">
+                    <i class="fa-regular fa-clock"></i> Est. Time: <span id="lockDurationText">--</span>
+                </div>
+
+                <div class="lock-help-text">
+                    P.S. If you believe this is a mistake, please contact the administrator or try refreshing.
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <a href="tel:+918777845713" class="modal-btn secondary" style="text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <i class="fa-solid fa-phone"></i> Contact Admin
+                </a>
+                <button id="lockPopupRefreshBtn" class="modal-btn" style="background: white; color: black;">
+                    <i class="fa-solid fa-rotate-right"></i> Refresh
+                </button>
+            </div>
+            
+            <button id="closeLockPopupBtn" class="close-modal-btn">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+    </div>
+
+    <div id="admin-lock-modal" class="modal-overlay">
+        <div class="modal-box" style="max-width: 500px;">
+            <h3>Secure Remote User</h3>
+            <p style="margin-bottom: 15px;">Target: <span id="lock-target-email" style="color: var(--accent-secondary);">--</span></p>
+            
+            <div class="lock-reason-selector">
+                <label style="color: #aaa; font-size: 0.8rem; text-transform: uppercase; display: block; margin-bottom: 8px;">Select Lock Reason</label>
+                
+                <div class="reason-options">
+                    <label class="reason-option selected" data-value="basic">
+                        <input type="radio" name="lockReason" value="basic" checked>
+                        <span class="reason-icon basic"><i class="fa-solid fa-circle-info"></i></span>
+                        <span>Basic</span>
+                    </label>
+                    
+                    <label class="reason-option" data-value="maintenance">
+                        <input type="radio" name="lockReason" value="maintenance">
+                        <span class="reason-icon maintenance"><i class="fa-solid fa-screwdriver-wrench"></i></span>
+                        <span>Maint.</span>
+                    </label>
+                    
+                    <label class="reason-option" data-value="suspension">
+                        <input type="radio" name="lockReason" value="suspension">
+                        <span class="reason-icon suspension"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                        <span>Review</span>
+                    </label>
+                </div>
+
+                <div id="maintenanceTimeInput" style="display: none; margin-top: 15px; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+                    <label style="font-size: 0.8rem; color: #f59e0b; display: block; margin-bottom: 5px;">Estimated Duration</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="number" id="maintHours" class="premium-input" placeholder="Hrs" style="margin:0; padding: 8px;" min="0">
+                        <input type="number" id="maintMins" class="premium-input" placeholder="Mins" style="margin:0; padding: 8px;" min="0">
+                    </div>
+                </div>
+            </div>
+
+            <div class="preview-box-container" style="margin: 20px 0; border-top: 1px solid var(--border-subtle); padding-top: 15px;">
+                <label style="color: #666; font-size: 0.75rem; text-transform: uppercase; display: block; margin-bottom: 8px;">User Screen Preview</label>
+                <div id="lockPreviewBox" class="lock-preview-card basic">
+                    <div style="font-weight: 600; font-size: 0.9rem; margin-bottom: 4px;">Role Update</div>
+                    <div style="font-size: 0.8rem; opacity: 0.8;">Certain tabs are restricted for your current role.</div>
+                </div>
+            </div>
+
+            <div class="password-wrapper">
+                <input type="password" id="adminLockPassword" class="premium-input" placeholder="Confirm Admin Password" style="text-align: center;">
+                <i class="fa-regular fa-eye password-toggle-icon" id="toggleAdminLockPassword"></i>
+            </div>
+
+            <div class="modal-actions">
+                <button id="cancelAdminLock" class="modal-btn secondary">Cancel</button>
+                <button id="confirmAdminLock" class="modal-btn danger">Sync & Lock</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="factory-reset-modal" class="modal-overlay">
+        <div class="modal-box" style="border: 1px solid #ef4444; box-shadow: 0 20px 60px rgba(239, 68, 68, 0.2);">
+            <h3 style="color: #ef4444;">⚠ DANGER ZONE</h3>
+            <p>This will <strong>PERMANENTLY ERASE</strong> all tickets, settings, and lock configurations.</p>
+            
+            <div class="password-wrapper">
+                <input type="password" id="factoryResetPasswordInput" class="premium-input" placeholder="Enter Reset Password" style="text-align: center; border-color: #ef4444;">
+                <i class="fa-regular fa-eye password-toggle-icon" id="toggleFactoryPassword"></i>
+            </div>
+
+            <div class="modal-actions">
+                <button id="cancelFactoryReset" class="modal-btn secondary">Cancel</button>
+                <button id="confirmFactoryReset" class="modal-btn danger" style="background: #ef4444;">NUKE DATABASE</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="username-gatekeeper-modal" class="modal-overlay" style="z-index: 2500; background: var(--bg-deep); display: none;">
+        <div class="modal-box" style="border: 1px solid var(--accent-secondary); box-shadow: 0 0 50px rgba(59, 130, 246, 0.1);">
+            <h3 style="color: var(--accent-secondary); margin-bottom: 10px;">Identity Verification</h3>
+            <p style="color: #ccc; font-size: 0.9rem; margin-bottom: 25px;">
+                Authentication successful. Please enter your unique staff <strong>Username</strong> to access the dashboard.
+            </p>
+            
+            <input type="text" id="gatekeeperUsernameInput" class="premium-input" placeholder="e.g. john_doe" style="text-align: center; font-weight: bold; letter-spacing: 1px;">
+            
+            <button id="gatekeeperSubmitBtn" class="premium-btn" style="background: var(--accent-secondary); color: white; border: none; margin-top: 15px;">
+                Verify Identity
+            </button>
+            
+            <div id="gatekeeper-error" style="color: #ef4444; font-size: 0.85rem; margin-top: 15px; display: none;">
+                Username not found. Contact Admin.
+            </div>
+            
+            <button id="gatekeeperLogoutBtn" class="premium-btn" style="background: transparent; color: #666; border: 1px solid #333; margin-top: 10px; font-size: 0.8rem; padding: 10px; width: 100%;">
+                Cancel & Sign Out
+            </button>
+        </div>
+    </div>
+
+    <div id="ticket-view-modal" class="modal-overlay">
+        <div class="modal-box" style="padding: 0; background: transparent; box-shadow: none; border: none; max-width: 400px; width: 100%;">
+            <div class="ticket-modal-content" style="background: var(--bg-deep); padding: 25px; border-radius: 24px; border: 1px solid var(--border-subtle); position: relative; box-shadow: 0 25px 50px rgba(0,0,0,0.8);">
+                
+                <button id="closeTicketModal" class="close-modal-btn">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                
+                <h3 style="text-align: center; margin-bottom: 20px; color: white;">Ticket Preview</h3>
+
+                <div id="modalTicketTemplate">
+                    <div class="ticket-content-wrapper">
+                        <div class="ticket-header">
+                            <h3 id="modalTicketTitleHeader">Entry Pass</h3>
+                            <p id="modalEventNamePlace">--</p>
+                        </div>
+                        <div class="ticket-body">
+                            <div class="ticket-details">
+                                <div class="ticket-info-row">
+                                    <span class="ticket-label">Guest Name</span>
+                                    <span class="ticket-value" id="modalTicketName">--</span>
+                                </div>
+                                <div class="ticket-info-row">
+                                    <span class="ticket-label">Profile</span>
+                                    <span class="ticket-value" id="modalTicketAgeGender">-- / --</span>
+                                </div>
+                                <div class="ticket-info-row">
+                                    <span class="ticket-label">Contact</span>
+                                    <span class="ticket-value" id="modalTicketPhone">--</span>
+                                </div>
+                                <div class="serial-pill" id="modalTicketSerial">ID: --</div>
+                            </div>
+                            <div class="ticket-qr">
+                                <div id="modalQrcode"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ticket-footer">
+                        SCAN THIS CODE AT THE ENTRANCE FOR ADMISSION
+                    </div>
+                </div>
+
+                <div style="margin-top: 25px;">
+                    <button id="modalWhatsAppBtn" class="premium-btn" style="background: #25D366; color: white; border: none; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                        <i class="fa-brands fa-whatsapp" style="font-size: 1.2rem;"></i> Share via WhatsApp
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="import-modal" class="modal-overlay">
+        <div class="modal-box" style="max-width: 500px;">
+            <h3>Import Guests</h3>
+            <p style="margin-bottom: 15px;">Upload a file to bulk import tickets.</p>
+            
+            <div class="import-area" style="border: 2px dashed var(--border-subtle); border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 20px; background: rgba(255,255,255,0.02);">
+                <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2rem; color: var(--accent-secondary); margin-bottom: 10px;"></i>
+                <p style="font-size: 0.9rem; color: #888; margin-bottom: 15px;">Supported: CSV, JSON</p>
+                <input type="file" id="importFileInput" accept=".csv, text/csv, application/vnd.ms-excel, .xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, .json, application/json, .txt, text/plain" style="display: none;">
+                <button id="browseFileBtn" class="premium-btn" style="width: auto; font-size: 0.9rem; padding: 8px 20px;">Browse Files</button>
+                <div id="selectedFileName" style="margin-top: 10px; font-size: 0.85rem; color: var(--success-green);"></div>
+            </div>
+
+            <div id="import-summary" style="display: none; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 5px;">
+                    <span style="color: #aaa;">Total Records Found:</span>
+                    <span id="importTotalCount" style="color: white; font-weight: bold;">0</span>
+                </div>
+                <div style="font-size: 0.8rem; color: #666;">duplicates will be skipped based on phone number.</div>
+            </div>
+
+            <div id="import-progress-container" style="display: none; margin-bottom: 20px;">
+                <div style="background: rgba(255,255,255,0.1); height: 6px; border-radius: 3px; overflow: hidden;">
+                    <div id="import-progress-bar" style="width: 0%; height: 100%; background: var(--success-green); transition: width 0.3s ease;"></div>
+                </div>
+                <div style="font-size: 0.8rem; color: #aaa; margin-top: 5px; text-align: right;">
+                    Importing <span id="import-current">0</span> / <span id="import-total">0</span>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button id="cancelImport" class="modal-btn secondary">Cancel</button>
+                <button id="confirmImport" class="modal-btn success" disabled>Import Data</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="export-modal" class="modal-overlay">
+        <div class="modal-box" style="max-width: 450px;">
+            <h3>Export Data</h3>
+            <p style="margin-bottom: 5px;">Configure your download below.</p>
+            <p id="export-count-msg" style="color: var(--success-green); font-size: 0.9rem; margin-bottom: 25px;">Ready to export 0 items.</p>
+            
+            <div style="text-align: left; margin-bottom: 20px;">
+                <label style="display: block; font-size: 0.8rem; color: #888; margin-bottom: 5px; text-transform: uppercase;">File Name</label>
+                <input type="text" id="exportFileName" class="premium-input" placeholder="guest_list" style="margin-bottom: 15px;">
+                
+                <label style="display: block; font-size: 0.8rem; color: #888; margin-bottom: 5px; text-transform: uppercase;">File Format</label>
+                <select id="exportFormat" class="premium-input">
+                    <option value="csv">Comma Separated Values (.csv)</option>
+                    <option value="xlsx">Excel Workbook (.xlsx)</option>
+                    <option value="pdf">PDF Document (.pdf)</option>
+                    <option value="txt">Text File (.txt)</option>
+                    <option value="doc">Word Document (.doc)</option>
+                    <option value="json">JSON Data (.json)</option>
+                </select>
+            </div>
+
+            <div class="modal-actions">
+                <button id="cancelExport" class="modal-btn secondary">Cancel</button>
+                <button id="confirmExport" class="modal-btn success">Download</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="login-overlay">
+        <div class="login-box">
+            <h2>Authorized Access</h2>
+            <p>Please verify your identity to continue.</p>
+            <input type="email" id="emailInput" class="premium-input" placeholder="Administrator Email">
+            
+            <div class="password-wrapper">
+                <input type="password" id="passwordInput" class="premium-input" placeholder="Password">
+                <i class="fa-regular fa-eye password-toggle-icon" id="togglePassword"></i>
+            </div>
+
+            <button id="loginButton" class="premium-btn">Authenticate</button>
+            <div id="auth-error" style="color: #ef4444; font-size: 0.9rem; margin-top: 15px; display: none;"></div>
+        </div>
+    </div>
+
+    <div class="app-container" id="appContent">
+        <header>
+            <h1>Ticketing<span style="font-weight: 600;">System</span>.</h1>
+            <div class="user-info-bar">
+                <span class="sync-dot"></span>
+                <span id="syncText">User: <span id="userEmailDisplay" style="color: var(--accent-secondary); font-weight: 600;">...</span></span>
+                <button id="logoutBtn" class="logout-btn">Sign Out</button>
+            </div>
+
+            <nav>
+                <button class="nav-btn active" data-tab="create" id="nav-create">Issue Ticket</button>
+                <button class="nav-btn" data-tab="booked" id="nav-booked">Guest List</button>
+                <button class="nav-btn" data-tab="scanner" id="nav-scanner">Scanner</button>
+                <button class="nav-btn" data-tab="settings" id="nav-settings">Configuration</button>
+                <button class="nav-btn" data-tab="logs" id="nav-logs" style="display: none;">Activity Logs</button>
+            </nav>
+        </header>
+
+        <main>
+            <div id="create" class="tab-content active">
+                <div class="form-and-ticket">
+                    <div class="glass-panel">
+                        <h2>New Guest Entry</h2>
+                        <form id="ticketForm">
+                            <input type="text" id="name" class="premium-input" placeholder="Full Name" required>
+                            
+                            <select id="ticketType" class="premium-input" required>
+                                <option value="Classic" selected>Classic</option>
+                                <option value="Diamond">VIP</option>
+                                <option value="Gold">VVIP</option>
+                            </select>
+
+                            <div style="display: flex; gap: 10px;">
+                                <select id="gender" class="premium-input" style="flex: 1;" required>
+                                    <option value="" disabled selected>Gender</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                                <input type="number" id="age" class="premium-input" placeholder="Age" style="flex: 1;" required min="1">
+                            </div>
+                            <input type="tel" id="phone" class="premium-input" placeholder="Phone (10 Digits)" required pattern="[0-9]{10}">
+                            <button type="submit" class="premium-btn">Generate Pass</button>
+                        </form>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 20px;">
+                        <div id="ticketTemplate">
+                            <div class="ticket-content-wrapper">
+                                <div class="ticket-header">
+                                    <h3 id="ticketTitleHeader">Entry Pass</h3>
+                                    <p id="eventNamePlace">Event Details Loading...</p>
+                                </div>
+                                <div class="ticket-body">
+                                    <div class="ticket-details">
+                                        <div class="ticket-info-row">
+                                            <span class="ticket-label">Guest Name</span>
+                                            <span class="ticket-value" id="ticketName">--</span>
+                                        </div>
+                                        <div class="ticket-info-row">
+                                            <span class="ticket-label">Profile</span>
+                                            <span class="ticket-value" id="ticketAgeGender">-- / --</span>
+                                        </div>
+                                        <div class="ticket-info-row">
+                                            <span class="ticket-label">Contact</span>
+                                            <span class="ticket-value" id="ticketPhone">--</span>
+                                        </div>
+                                        <div class="serial-pill" id="ticketSerial">ID: --</div>
+                                    </div>
+                                    <div class="ticket-qr">
+                                        <div id="qrcode"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="ticket-footer">
+                                SCAN THIS CODE AT THE ENTRANCE FOR ADMISSION
+                            </div>
+                        </div>
+                        <button id="whatsappBtn" class="premium-btn" style="background: #25D366; color: white; border: none;" disabled>
+                            Save & Share via WhatsApp
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="booked" class="tab-content">
+                <div class="glass-panel" style="padding: 1.5rem;">
+                    <div class="guest-list-header-wrapper">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <h2 style="border: none; margin: 0; padding: 0;">Guest List</h2>
+                            <div id="refreshStatusIndicator" title="Auto-syncs every 15s. Click to refresh now.">
+                                <i class="fa-solid fa-arrows-rotate"></i>
+                            </div>
+                        </div>
+                        <div class="booked-controls">
+                             <button id="importBtn" class="action-btn-small" style="background: rgba(59, 130, 246, 0.2); color: #3b82f6;">Import</button>
+                             <button id="deleteBtn" class="action-btn-small" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; display: none;">Delete</button>
+                             <button id="selectBtn" class="action-btn-small">Select</button>
+                        </div>
+                    </div>
+
+                    <div class="search-filter-container">
+                        <div class="search-box-wrapper">
+                            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                            <input type="text" id="searchGuestInput" class="search-input" placeholder="Search name or phone...">
+                        </div>
+                        <div style="position: relative;">
+                            <button id="filterSortBtn" class="filter-btn">
+                                <i class="fa-solid fa-filter"></i> Filter / Sort
+                            </button>
+                            <div id="filterDropdown" class="filter-dropdown">
+                                <div class="dropdown-header">Filter Ticket Type</div>
+                                <div class="dropdown-item selected" data-type="filter-ticket" data-val="all">All Types</div>
+                                <div class="dropdown-item" data-type="filter-ticket" data-val="Classic">Classic Only</div>
+                                <div class="dropdown-item" data-type="filter-ticket" data-val="Diamond">VIP</div>
+                                <div class="dropdown-item" data-type="filter-ticket" data-val="Gold">VVIP</div>
+
+                                <div class="dropdown-divider"></div>
+
+                                <div class="dropdown-header">Filter Status</div>
+                                <div class="dropdown-item selected" data-type="filter" data-val="all">All Guests</div>
+                                <div class="dropdown-item" data-type="filter" data-val="arrived">Arrived Only</div>
+                                <div class="dropdown-item" data-type="filter" data-val="coming-soon">Coming Soon</div>
+                                <div class="dropdown-item" data-type="filter" data-val="absent">Absent</div>
+                                
+                                <div class="dropdown-divider"></div>
+
+                                <div class="dropdown-header">Filter Gender</div>
+                                <div class="dropdown-item selected" data-type="filter-gender" data-val="all">All Genders</div>
+                                <div class="dropdown-item" data-type="filter-gender" data-val="Male">Male Only</div>
+                                <div class="dropdown-item" data-type="filter-gender" data-val="Female">Female Only</div>
+                                <div class="dropdown-item" data-type="filter-gender" data-val="Other">Other</div>
+
+                                <div class="dropdown-divider"></div>
+
+                                <div class="dropdown-header">Sort Order</div>
+                                <div class="dropdown-item selected" data-type="sort" data-val="newest">Newest First</div>
+                                <div class="dropdown-item" data-type="sort" data-val="oldest">Oldest First</div>
+                                <div class="dropdown-item" data-type="sort" data-val="name-asc">Name (A-Z)</div>
+                                <div class="dropdown-item" data-type="sort" data-val="name-desc">Name (Z-A)</div>
+                                <div class="dropdown-item" data-type="sort" data-val="age-asc">Age (Youngest)</div>
+                                <div class="dropdown-item" data-type="sort" data-val="age-desc">Age (Oldest)</div>
+                                <div class="dropdown-item" data-type="sort" data-val="gender">Gender (Grouped)</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="select-all-container" style="display: none; padding: 10px; background: rgba(255,255,255,0.05); margin-bottom: 15px; border-radius: 8px; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center;">
+                            <input type="checkbox" id="selectAllCheckbox">
+                            <label for="selectAllCheckbox" style="margin-left: 10px; font-size: 0.9rem;">Select All</label>
+                            <span id="selectionCount" style="margin-left: 15px; color: var(--accent-secondary); font-size: 0.9rem;">(0 selected)</span>
+                        </div>
+                        <button id="exportTriggerBtn" class="export-btn-small" disabled>
+                            <i class="fa-solid fa-file-export"></i> Export
+                        </button>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="tickets-table">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th style="width: 50px; text-align: center;">#</th>
+                                    <th class="guest-name-col">Guest Name</th>
+                                    <th>Ticket Type</th>
+                                    <th>Details</th>
+                                    <th>Contact</th>
+                                    <th>Ticket ID</th>
+                                    <th>Status</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="bookedTicketsTable">
+                                <tr><td colspan="9" style="text-align:center; padding: 30px; color: #666;">Loading data...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="scanner" class="tab-content">
+                <div class="glass-panel" style="text-align: center;">
+                    <h2>Entry Validation</h2>
+                    <div id="scanner-container">
+                        <video id="scanner-video" playsinline></video>
+                        <div class="scanner-overlay"></div>
+                    </div>
+                    <div id="scanResult" style="margin-top: 20px; padding: 15px; border-radius: 12px; display: none;"></div>
+                    <button id="startScanBtn" class="premium-btn" style="width: auto; padding: 12px 30px; margin: 10px auto;">Activate Camera</button>
+                </div>
+            </div>
+
+            <div id="settings" class="tab-content">
+                <div class="glass-panel" style="max-width: 600px; margin: 0 auto;">
+                    <h2>Configuration</h2>
+                    <form id="eventSettingsForm">
+                        <label style="display: block; margin-bottom: 5px; color: #888; font-size: 0.85rem; text-transform: uppercase;">Event Name</label>
+                        <input type="text" id="eventName" class="premium-input" placeholder="e.g. Summer Gala 2024">
+                        
+                        <label style="display: block; margin-bottom: 5px; color: #888; font-size: 0.85rem; text-transform: uppercase;">Location</label>
+                        <input type="text" id="eventPlace" class="premium-input" placeholder="e.g. Grand Hall">
+                        
+                        <label style="display: block; margin-bottom: 5px; color: #888; font-size: 0.85rem; text-transform: uppercase;">Deadline</label>
+                        <input type="datetime-local" id="arrivalDeadline" class="premium-input" style="color-scheme: dark;">
+
+                        <button type="submit" class="premium-btn">Save Configuration</button>
+                    </form>
+
+                    <div class="current-settings" style="margin-top: 30px; padding: 20px; background: rgba(0,0,0,0.3); border-radius: 12px;">
+                        <h4 style="margin-bottom: 10px; color: white;">Active Settings</h4>
+                        <p style="font-size: 0.9rem; color: #888; margin-bottom: 5px;"><strong>Event:</strong> <span id="currentEventName" style="color: white;">--</span></p>
+                        <p style="font-size: 0.9rem; color: #888; margin-bottom: 5px;"><strong>Venue:</strong> <span id="currentEventPlace" style="color: white;">--</span></p>
+                        <p style="font-size: 0.9rem; color: #888;"><strong>Time:</strong> <span id="currentDeadline" style="color: white;">--</span></p>
+                    </div>
+
+                    <div id="admin-lock-panel" style="display: none; margin-top: 40px; border-top: 1px solid var(--border-subtle); padding-top: 30px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h3 style="font-size: 1.2rem; color: white; margin: 0;">Remote Device Management</h3>
+                            <span class="status-badge status-arrived" style="font-size: 0.7rem;">Admin Access</span>
+                        </div>
+                        <p style="color: #888; font-size: 0.9rem; margin-bottom: 20px;">
+                            Monitor active sessions and lock specific tabs for staff members. 
+                        </p>
+                        
+                        <div id="managed-users-list" class="managed-users-grid">
+                            <div style="padding: 20px; text-align: center; color: #666;">Loading staff status...</div>
+                        </div>
+
+                        <div id="user-lock-config-area" style="display: none; background: rgba(255,255,255,0.05); padding: 20px; border-radius: 16px; margin-top: 20px; border: 1px solid var(--border-subtle);">
+                            
+                            <h4 style="color: white; margin-bottom: 5px; display: flex; align-items: center; gap: 10px;">
+                                <i class="fa-solid fa-user-lock"></i> 
+                                Configuring:
+                            </h4>
+                            <div id="selected-user-email" style="color: var(--accent-secondary); font-size: 0.85rem; font-family: monospace; word-break: break-all; margin-bottom: 20px; padding-left: 28px;">--</div>
+                            
+                            <div style="margin-bottom: 15px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <h5 style="color: #ccc; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin: 0;">
+                                        <i class="fa-solid fa-users-viewfinder"></i> Select Users
+                                    </h5>
+                                    <div style="font-size: 0.75rem; color: var(--accent-secondary); cursor: pointer;" id="selectAllUsernamesBtn">Select All</div>
+                                </div>
+                                <div id="username-list-container" class="username-list-container">
+                                    <div style="color: #666; font-size: 0.8rem; font-style: italic; padding: 10px;">Select an email above to load associated usernames...</div>
+                                </div>
+                            </div>
+                            <h5 style="color: #ccc; margin-bottom: 10px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">
+                                <i class="fa-solid fa-ban"></i> Restrict Tabs
+                            </h5>
+                            <div style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px;">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" class="remote-lock-checkbox" value="create"> Issue Ticket Tab
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" class="remote-lock-checkbox" value="booked"> Guest List Tab
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" class="remote-lock-checkbox" value="scanner"> Scanner Tab
+                                </label>
+                            </div>
+
+                            <button id="triggerLockModalBtn" class="premium-btn danger-mode">
+                                <i class="fa-solid fa-tower-broadcast"></i> <span id="triggerBtnText">Sync & Lock</span>
+                            </button>
+                        </div>
+
+                        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-subtle); text-align: center;">
+                            <button id="factoryResetBtn" class="premium-btn" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; width: auto; display: inline-flex; font-size: 0.8rem; align-items: center; justify-content: center;">
+                                <i class="fa-solid fa-trash-can" style="margin-right: 8px;"></i> Factory Reset Database
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="user-lock-status" style="display: none; margin-top: 40px; border-top: 1px solid var(--border-subtle); padding-top: 30px; text-align: center;">
+                        <h3 style="font-size: 1.1rem; color: #666; margin-bottom: 10px;">System Status</h3>
+                        <p style="color: #444; font-size: 0.9rem;">
+                            <i class="fa-solid fa-shield-halved"></i> Access controls are managed centrally by the Administrator.
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+
+            <div id="logs" class="tab-content">
+                <div class="glass-panel" style="padding: 1.5rem;">
+                    <div class="guest-list-header-wrapper">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <h2 style="border: none; margin: 0; padding: 0;">Activity Logs</h2>
+                            <div id="refreshLogsBtn" title="Refresh Logs" style="cursor: pointer; color: var(--text-muted); font-size: 1rem; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(255,255,255,0.05);">
+                                <i class="fa-solid fa-arrows-rotate"></i>
+                            </div>
+                        </div>
+                        <div class="booked-controls">
+                             <button id="deleteLogsBtn" class="action-btn-small" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; display: none;">Delete</button>
+                             <button id="selectLogsBtn" class="action-btn-small">Select</button>
+                        </div>
+                    </div>
+
+                    <div class="search-filter-container">
+                        <div class="search-box-wrapper">
+                            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                            <input type="text" id="searchLogsInput" class="search-input" placeholder="Search user, action, or details...">
+                        </div>
+                        <div style="position: relative;">
+                            <button id="filterLogsTypeBtn" class="filter-btn">
+                                <i class="fa-solid fa-filter"></i> Type
+                            </button>
+                            <div id="filterLogsDropdown" class="filter-dropdown">
+                                <div class="dropdown-header">Filter by Action</div>
+                                <div class="dropdown-item selected" data-type="log-filter" data-val="all">All Actions</div>
+                                <div class="dropdown-item" data-type="log-filter" data-val="LOGIN">Logins</div>
+                                <div class="dropdown-item" data-type="log-filter" data-val="TICKET_CREATE">Ticket Issues</div>
+                                <div class="dropdown-item" data-type="log-filter" data-val="SCAN_ENTRY">Scans</div>
+                                <div class="dropdown-item" data-type="log-filter" data-val="CONFIG_CHANGE">Settings</div>
+                                <div class="dropdown-item" data-type="log-filter" data-val="HELP_CALL">Help Calls</div>
+                                <div class="dropdown-item" data-type="log-filter" data-val="TICKET_DELETE">Ticket Deletions</div>
+                                <div class="dropdown-item" data-type="log-filter" data-val="FACTORY_RESET">Factory Resets</div>
+                                <div class="dropdown-item" data-type="log-filter" data-val="LOCK_ACTION">Admin Locks</div>
+                                <div class="dropdown-item" data-type="log-filter" data-val="LOG_DELETE">Log Deletions</div>
+                                <div class="dropdown-item" data-type="log-filter" data-val="EXPORT_DATA">Data Exports</div>
+                                <div class="dropdown-item" data-type="log-filter" data-val="IMPORT_DATA">Import Data</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="logs-select-all-container" style="display: none; padding: 10px; background: rgba(255,255,255,0.05); margin-bottom: 15px; border-radius: 8px; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center;">
+                            <input type="checkbox" id="selectAllLogsCheckbox">
+                            <label for="selectAllLogsCheckbox" style="margin-left: 10px; font-size: 0.9rem;">Select All</label>
+                            <span id="logsSelectionCount" style="margin-left: 15px; color: var(--accent-secondary); font-size: 0.9rem;">(0 selected)</span>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="tickets-table">
+                            <thead>
+                                <tr>
+                                    <th class="log-check-header" style="display: none; width: 40px;"></th>
+                                    <th style="width: 160px;">Timestamp</th>
+                                    <th>User</th>
+                                    <th>Action</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="activityLogsTable">
+                                <tr><td colspan="5" style="text-align:center; padding: 30px; color: #666;">Loading activity logs...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <div id="contactTray" class="contact-tray">
+        <div class="tray-handle" id="trayToggle">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;">
+                <i class="fa-solid fa-user-headset" style="font-size: 1.2rem;"></i>
+                <i class="fa-solid fa-chevron-left" id="trayIcon" style="font-size: 0.9rem;"></i>
+            </div>
+        </div>
+        <div class="tray-content">
+            <h2 class="tray-heading">Quick Help Tray</h2>
+            
+            <div class="contact-section">
+                <div class="section-header-wrapper">
+                    <h3>Admin/Developer</h3>
+                    <div class="info-icon-wrapper">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <div class="info-tooltip">For system errors, bugs, or technical app support.</div>
+                    </div>
+                </div>
+                <div class="contact-card">
+                    <span class="contact-name">Shovith Debnath</span>
+                    <div class="contact-actions">
+                        <a href="https://wa.me/918777845713" target="_blank" class="whatsapp-btn-small"><i class="fa-brands fa-whatsapp"></i></a>
+                        <a href="tel:+918777845713" class="call-btn-small">Call <i class="fa-solid fa-phone"></i></a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="contact-section">
+                <div class="section-header-wrapper">
+                    <h3>Event Manager</h3>
+                    <div class="info-icon-wrapper">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <div class="info-tooltip">For event schedule, logistics, and operational inquiries.</div>
+                    </div>
+                </div>
+                <div class="contact-card">
+                    <span class="contact-name">Rakesh Sharma</span>
+                    <div class="contact-actions">
+                        <a href="https://wa.me/919830009228" target="_blank" class="whatsapp-btn-small"><i class="fa-brands fa-whatsapp"></i></a>
+                        <a href="tel:+919830009228" class="call-btn-small">Call <i class="fa-solid fa-phone"></i></a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="contact-section">
+                <div class="section-header-wrapper">
+                    <h3>Registration Desk</h3>
+                    <div class="info-icon-wrapper">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <div class="info-tooltip">For guest list discrepancies or check-in assistance.</div>
+                    </div>
+                </div>
+                <div class="contact-card">
+                    <span class="contact-name">Priya Malhotra</span>
+                    <div class="contact-actions">
+                        <a href="#" class="whatsapp-btn-small"><i class="fa-brands fa-whatsapp"></i></a>
+                        <a href="#" class="call-btn-small">Call <i class="fa-solid fa-phone"></i></a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="contact-section">
+                <div class="section-header-wrapper">
+                    <h3>Security Head</h3>
+                    <div class="info-icon-wrapper">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <div class="info-tooltip">For safety concerns, crowd control, or emergency reporting.</div>
+                    </div>
+                </div>
+                <div class="contact-card">
+                    <span class="contact-name">Vikram Singh</span>
+                    <div class="contact-actions">
+                        <a href="#" class="whatsapp-btn-small"><i class="fa-brands fa-whatsapp"></i></a>
+                        <a href="#" class="call-btn-small">Call <i class="fa-solid fa-phone"></i></a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="contact-section">
+                <div class="section-header-wrapper">
+                    <h3>Medical Support</h3>
+                    <div class="info-icon-wrapper">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <div class="info-tooltip">For first aid, medical emergencies, or health assistance.</div>
+                    </div>
+                </div>
+                <div class="contact-card">
+                    <span class="contact-name">Dr. Anjali Gupta</span>
+                    <div class="contact-actions">
+                        <a href="#" class="whatsapp-btn-small"><i class="fa-brands fa-whatsapp"></i></a>
+                        <a href="#" class="call-btn-small">Call <i class="fa-solid fa-phone"></i></a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="contact-section">
+                <div class="section-header-wrapper">
+                    <h3>Venue Coordinator</h3>
+                    <div class="info-icon-wrapper">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <div class="info-tooltip">For facility access, lighting, or infrastructure issues.</div>
+                    </div>
+                </div>
+                <div class="contact-card">
+                    <span class="contact-name">Amit Roy</span>
+                    <div class="contact-actions">
+                        <a href="#" class="whatsapp-btn-small"><i class="fa-brands fa-whatsapp"></i></a>
+                        <a href="#" class="call-btn-small">Call <i class="fa-solid fa-phone"></i></a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="contact-section">
+                <div class="section-header-wrapper">
+                    <h3>Catering Manager</h3>
+                    <div class="info-icon-wrapper">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <div class="info-tooltip">For food, beverage, and dietary requirement queries.</div>
+                    </div>
+                </div>
+                <div class="contact-card">
+                    <span class="contact-name">Sneha Kapoor</span>
+                    <div class="contact-actions">
+                        <a href="#" class="whatsapp-btn-small"><i class="fa-brands fa-whatsapp"></i></a>
+                        <a href="#" class="call-btn-small">Call <i class="fa-solid fa-phone"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- UPDATED: Chat Drawer with Split View -->
+    <div id="chatDrawer" class="chat-drawer">
+        <div class="chat-header">
+            <h3>
+                <button id="chatBackBtn" class="chat-close-btn" style="display: none; margin-right: 10px;">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <i class="fa-solid fa-comments"></i> <span id="chatHeaderTitle">Comms Center</span>
+            </h3>
+            <button id="closeChatBtn" class="chat-close-btn"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        
+        <!-- View 1: Channel List (Inbox) -->
+        <div id="channelListContainer" style="display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;">
+            <div style="padding: 15px; border-bottom: 1px solid var(--border-subtle);">
+                <input type="text" placeholder="Search chats..." class="premium-input" style="margin:0; padding: 10px; font-size: 0.9rem;">
+            </div>
+            <div id="channelList" class="notif-list" style="flex: 1; overflow-y: auto;">
+                <!-- Channels injected here -->
+            </div>
+        </div>
+
+        <!-- View 2: Active Chat (Hidden by default) -->
+       <div id="activeChatContainer" style="display: none; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;">
+            
+            <div id="chatSelectionMenu" class="chat-selection-menu" style="display: none;">
+                <div class="selection-left">
+                    <button id="closeSelectionBtn" class="icon-btn-small"><i class="fa-solid fa-xmark"></i></button>
+                    <span id="selectionCountText">0 Selected</span>
+                </div>
+                <div class="selection-right">
+                    <button id="copySelectionBtn" class="icon-btn-small"><i class="fa-regular fa-copy"></i></button>
+                    <button id="deleteSelectionBtn" class="icon-btn-small danger"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            </div>
+            
+            <!-- Admin Controls: Only visible to Admin (Legacy / Optional if switching to click-based) -->
+            <!-- We keep it hidden for now as we transition to list-based navigation -->
+            <div id="adminChatControls" class="chat-controls" style="display: none;">
+                <label style="font-size: 0.75rem; color: #888; text-transform: uppercase;">Send To:</label>
+                <select id="chatTargetSelect" class="premium-input" style="margin-bottom: 0; padding: 8px;">
+                    <option value="GLOBAL">📢 Broadcast (Everyone)</option>
+                </select>
+            </div>
+
+            <div id="chatMessages" class="chat-messages-area">
+                <div style="text-align: center; color: #666; font-size: 0.8rem; margin-top: 20px;">
+                    No recent messages.<br>Start a conversation.
+                </div>
+            </div>
+
+            <!-- Reply Preview Container -->
+            <div id="replyPreviewContainer" class="reply-preview-container" style="display: none;">
+                <div class="reply-content">
+                    <div class="reply-sender" id="replySenderName">Replying to...</div>
+                    <div class="reply-text" id="replyTextPreview">...</div>
+                </div>
+                <button id="closeReplyBtn" class="close-reply-btn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+             <!-- Typing Indicator Added Here -->
+             <div id="typingIndicator" class="typing-indicator">
+                <span id="typingText">Someone is typing</span>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+
+            <div class="chat-input-area">
+                <input type="text" id="chatInput" class="premium-input" placeholder="Type a message..." style="margin: 0;">
+                <button id="chatSendBtn" class="premium-btn" style="width: auto; margin: 0; padding: 0 15px;">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu for Chat Messages -->
+    <div id="chatContextMenu" class="context-menu" style="display: none;">
+        <div class="context-item" id="contextReply"><i class="fa-solid fa-reply"></i> Reply</div>
+        <div class="context-item" id="contextCopy"><i class="fa-regular fa-copy"></i> Copy</div>
+        <div class="context-item" id="contextEdit" style="display:none;"><i class="fa-solid fa-pen"></i> Edit</div>
+        <div class="context-item delete" id="contextDelete" style="display:none;"><i class="fa-solid fa-trash"></i> Delete</div>
+    </div>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>
